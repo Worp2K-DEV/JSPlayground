@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Stackable Science Sandbox</title>
+<style>
+  body { margin: 0; overflow: hidden; background: #111; }
+  #toolbox {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;
+    z-index: 10;
+    color: #fff;
+    font-family: sans-serif;
+  }
+  button, select { margin: 5px; padding: 5px 10px; }
+</style>
+</head>
+<body>
+
+<div id="toolbox">
+  <button onclick="currentElement='sand'">Sand</button>
+  <button onclick="currentElement='water'">Water</button>
+  <button onclick="currentElement='oil'">Oil</button>
+  <button onclick="currentElement='fire'">Fire</button>
+  <button onclick="currentElement='lava'">Lava</button>
+  <button onclick="currentElement='acid'">Acid</button>
+  <button onclick="clearCanvas()">Clear</button>
+  <label>Brush Size:</label>
+  <select id="brushSize" onchange="changeBrushSize(this.value)">
+    <option value="1">Small</option>
+    <option value="3">Medium</option>
+    <option value="5">Large</option>
+  </select>
+</div>
+
+<canvas id="sandbox"></canvas>
+
+<script>
+const canvas = document.getElementById('sandbox');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let gridSize = 4; // each cell is 4x4 pixels
+let cols = Math.floor(canvas.width / gridSize);
+let rows = Math.floor(canvas.height / gridSize);
+let grid = [];
+
+// Initialize empty grid
+for(let y=0; y<rows; y++){
+  grid[y] = [];
+  for(let x=0; x<cols; x++){
+    grid[y][x] = null;
+  }
+}
+
+let currentElement = 'sand';
+let brushSize = 1;
+
+// Particle colors
+const colors = {
+  sand: '#daa520',
+  water: '#00f',
+  oil: '#000',
+  fire: '#f50',
+  lava: '#ff3300',
+  acid: '#0f0',
+  smoke: '#888'
+};
+
+// Place particle
+function placeParticle(x, y, type){
+  if(x<0||x>=cols||y<0||y>=rows) return;
+  grid[y][x] = {type: type, reacted: false};
+}
+
+// Mouse painting
+canvas.addEventListener('mousemove', e=>{
+  if(e.buttons===1){
+    let gx = Math.floor(e.clientX / gridSize);
+    let gy = Math.floor(e.clientY / gridSize);
+    for(let dx=-brushSize+1; dx<brushSize; dx++){
+      for(let dy=-brushSize+1; dy<brushSize; dy++){
+        placeParticle(gx+dx, gy+dy, currentElement);
+      }
+    }
+  }
+});
+
+// Clear grid
+function clearCanvas(){
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      grid[y][x]=null;
+    }
+  }
+}
+
+// Change brush size
+function changeBrushSize(size){ brushSize = parseInt(size); }
+
+// Main update loop
+function update(){
+  // Start from bottom to top for stacking
+  for(let y=rows-2; y>=0; y--){
+    for(let x=0; x<cols; x++){
+      let p = grid[y][x];
+      if(!p) continue;
+
+      // Gravity & stacking
+      let below = grid[y+1][x];
+      if(!below){
+        grid[y+1][x] = p;
+        grid[y][x] = null;
+      } else if(p.type==='water' || p.type==='oil' || p.type==='lava'){
+        // Flow sideways if blocked
+        let moved=false;
+        if(x>0 && !grid[y+1][x-1]) { grid[y+1][x-1]=p; grid[y][x]=null; moved=true;}
+        else if(x<cols-1 && !grid[y+1][x+1]) { grid[y+1][x+1]=p; grid[y][x]=null; moved=true;}
+        if(moved) continue;
+      }
+
+      // Check reactions
+      let neighbors = [
+        grid[y+1]?.[x], grid[y-1]?.[x], grid[y]?.[x+1], grid[y]?.[x-1]
+      ];
+      for(let n of neighbors){
+        if(!n||p.reacted||n.reacted) continue;
+
+        // Fire + Oil -> Explosion
+        if((p.type==='fire' && n.type==='oil')||(p.type==='oil' && n.type==='fire')){
+          triggerExplosion(x, y, 6);
+          p.reacted=true; n.reacted=true;
+        }
+
+        // Acid + Oil -> Explosion
+        if((p.type==='acid' && n.type==='oil')||(p.type==='oil' && n.type==='acid')){
+          triggerExplosion(x, y, 8);
+          p.reacted=true; n.reacted=true;
+        }
+
+        // Water + Fire -> Smoke
+        if((p.type==='water' && n.type==='fire')||(p.type==='fire' && n.type==='water')){
+          p.type='smoke';
+          n.type='smoke';
+        }
+
+        // Lava + Water -> Smoke
+        if((p.type==='lava' && n.type==='water')||(p.type==='water' && n.type==='lava')){
+          p.type='smoke';
+          n.type='smoke';
+        }
+      }
+    }
+  }
+}
+
+// Explosion
+function triggerExplosion(cx, cy, radius){
+  for(let dx=-radius; dx<=radius; dx++){
+    for(let dy=-radius; dy<=radius; dy++){
+      let x=cx+dx;
+      let y=cy+dy;
+      if(x<0||x>=cols||y<0||y>=rows) continue;
+      let dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<=radius){
+        grid[y][x]={type:'fire', reacted:false};
+      }
+    }
+  }
+}
+
+// Draw loop
+function draw(){
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      let p=grid[y][x];
+      if(p){
+        ctx.fillStyle=colors[p.type]||'#fff';
+        ctx.fillRect(x*gridSize, y*gridSize, gridSize, gridSize);
+      }
+    }
+  }
+}
+
+// Animation loop
+function loop(){
+  ctx.fillStyle='#111';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+// Resize canvas
+window.addEventListener('resize', ()=>{
+  canvas.width=window.innerWidth;
+  canvas.height=window.innerHeight;
+  cols = Math.floor(canvas.width / gridSize);
+  rows = Math.floor(canvas.height / gridSize);
+  let newGrid=[];
+  for(let y=0;y<rows;y++){
+    newGrid[y]=[];
+    for(let x=0;x<cols;x++){
+      newGrid[y][x]=grid[y]?.[x]||null;
+    }
+  }
+  grid=newGrid;
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maze Random Monster Game</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: linear-gradient(135deg, #1e1e2f, #2b2b3c);
+      color: white;
+      font-family: "Poppins", sans-serif;
+    }
+
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #999;
+      user-select: none;
+    }
+
+    canvas {
+      display: block;
+      margin: 0;
+      border: 2px solid #222;
+      background-color: #fff;
+      transition: background 0.5s;
+    }
+
+    #joystick {
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 2px solid #aaa;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+      touch-action: none;
+    }
+
+    #stick {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #ff4444;
+      pointer-events: none;
+      position: relative;
+    }
+
+    #wasdHint {
+      position: absolute;
+      bottom: 180px;
+      left: 40px;
+      font-size: 14px;
+      opacity: 0.7;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">Score: <span id="score">0</span></div>
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="joystick"><div id="stick"></div></div>
+  <div id="wasdHint">Use <b>WASD</b> or drag the joystick!</div>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreDisplay = document.getElementById("score");
+    const joystick = document.getElementById("joystick");
+    const stick = document.getElementById("stick");
+
+    let tileSize = 40;
+    let mazeWidth, mazeHeight;
+    let maze = [];
+    let player = { x: 1, y: 1, px: 1, py: 1 };
+    let score = 0;
+    let transition = 0;
+    let moving = false;
+
+    let monster = { x: 5, y: 5, px: 5, py: 5, speed: 0.1 };
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      mazeWidth = Math.floor(canvas.width / tileSize);
+      mazeHeight = Math.floor(canvas.height / tileSize);
+      maze = generateMaze();
+
+      player.x = player.y = player.px = player.py = 1;
+      monster.x = monster.y = monster.px = monster.py = Math.min(mazeWidth - 2, 5);
+    }
+    window.addEventListener("resize", resizeCanvas);
+
+    function generateMaze() {
+      const m = [];
+      for (let y = 0; y < mazeHeight; y++) {
+        const row = [];
+        for (let x = 0; x < mazeWidth; x++) {
+          let tile = Math.random() < 0.05 ? 2 : Math.random() < 0.7 ? 0 : 1;
+          row.push(tile);
+        }
+        m.push(row);
+      }
+      m[1][1] = m[1][2] = m[2][1] = 0;
+
+      // One real door
+      const doorX = Math.floor(Math.random() * (mazeWidth - 2)) + 1;
+      const doorY = Math.floor(Math.random() * (mazeHeight - 2)) + 1;
+      m[doorY][doorX] = 2;
+
+      return m;
+    }
+
+    function drawMaze() {
+      for (let y = 0; y < mazeHeight; y++) {
+        for (let x = 0; x < mazeWidth; x++) {
+          const tile = maze[y][x];
+          if (tile === 1) ctx.fillStyle = "#222";
+          else if (tile === 2) ctx.fillStyle = "#2ecc71";
+          else ctx.fillStyle = "#f0f0f0";
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    function drawPlayer() {
+      const centerX = player.px * tileSize + tileSize / 2;
+      const centerY = player.py * tileSize + tileSize / 2;
+
+      ctx.shadowColor = "black";
+      ctx.shadowBlur = 8;
+
+      const grad = ctx.createRadialGradient(centerX, centerY, 2, centerX, centerY, 12);
+      grad.addColorStop(0, "#ff8888");
+      grad.addColorStop(1, "#ff0000");
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+    }
+
+    function drawMonster() {
+      const centerX = monster.px * tileSize + tileSize / 2;
+      const centerY = monster.py * tileSize + tileSize / 2;
+
+      ctx.shadowColor = "black";
+      ctx.shadowBlur = 8;
+
+      const grad = ctx.createRadialGradient(centerX, centerY, 2, centerX, centerY, 12);
+      grad.addColorStop(0, "#8888ff");
+      grad.addColorStop(1, "#0000ff");
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+    }
+
+    const keys = {};
+    window.addEventListener("keydown", e => {
+      if (["w","a","s","d","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+        keys[e.key.toLowerCase()] = true;
+      }
+    });
+    window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+    function updatePlayer() {
+      if (moving) return;
+      let newX = player.x;
+      let newY = player.y;
+
+      if (keys["w"] || keys["arrowup"]) newY--;
+      if (keys["s"] || keys["arrowdown"]) newY++;
+      if (keys["a"] || keys["arrowleft"]) newX--;
+      if (keys["d"] || keys["arrowright"]) newX++;
+
+      if ((newX !== player.x || newY !== player.y) &&
+          newX >= 0 && newY >= 0 &&
+          newX < mazeWidth && newY < mazeHeight &&
+          maze[newY][newX] !== 1) {
+
+        moving = true;
+        smoothMove(newX, newY);
+
+        if (maze[newY][newX] === 2) {
+          score++;
+          scoreDisplay.textContent = score;
+          transition = 1;
+          setTimeout(() => {
+            maze = generateMaze();
+            player.x = player.y = player.px = player.py = 1;
+            monster.x = monster.y = monster.px = monster.py = Math.min(mazeWidth - 2, 5);
+            moving = false;
+          }, 500);
+        }
+      }
+    }
+
+    function smoothMove(targetX, targetY) {
+      const frames = 10;
+      let frame = 0;
+      const startX = player.x;
+      const startY = player.y;
+      const dx = targetX - startX;
+      const dy = targetY - startY;
+
+      const interval = setInterval(() => {
+        frame++;
+        player.px = startX + (dx * frame) / frames;
+        player.py = startY + (dy * frame) / frames;
+
+        if (frame >= frames) {
+          clearInterval(interval);
+          player.x = targetX;
+          player.y = targetY;
+          player.px = targetX;
+          player.py = targetY;
+          moving = false;
+        }
+      }, 16);
+    }
+
+    function updateMonster() {
+      // Random movement
+      const directions = [
+        { dx: 1, dy: 0 },
+        { dx: -1, dy: 0 },
+        { dx: 0, dy: 1 },
+        { dx: 0, dy: -1 }
+      ];
+      const dir = directions[Math.floor(Math.random() * directions.length)];
+      const newX = monster.x + dir.dx;
+      const newY = monster.y + dir.dy;
+
+      if (newX >= 0 && newY >= 0 && newX < mazeWidth && newY < mazeHeight && maze[newY][newX] !== 1) {
+        monster.x = newX;
+        monster.y = newY;
+      }
+
+      monster.px += (monster.x - monster.px) * monster.speed;
+      monster.py += (monster.y - monster.py) * monster.speed;
+
+      // Collision with player
+      if (Math.floor(monster.x) === player.x && Math.floor(monster.y) === player.y) {
+        alert("Caught by the monster! Game over.");
+        score = 0;
+        scoreDisplay.textContent = score;
+        maze = generateMaze();
+        player.x = player.y = player.px = player.py = 1;
+        monster.x = monster.y = monster.px = monster.py = Math.min(mazeWidth - 2, 5);
+      }
+    }
+
+    // Joystick
+    let dragging = false;
+    joystick.addEventListener("mousedown", e => { dragging = true; handleJoystick(e); });
+    joystick.addEventListener("mouseup", stopJoystick);
+    joystick.addEventListener("mouseleave", stopJoystick);
+    joystick.addEventListener("mousemove", e => dragging && handleJoystick(e));
+    joystick.addEventListener("touchstart", e => { dragging = true; handleJoystick(e.touches[0]); });
+    joystick.addEventListener("touchmove", e => handleJoystick(e.touches[0]));
+    joystick.addEventListener("touchend", stopJoystick);
+
+    function handleJoystick(e) {
+      const rect = joystick.getBoundingClientRect();
+      const dx = e.clientX - (rect.left + rect.width/2);
+      const dy = e.clientY - (rect.top + rect.height/2);
+      const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 40);
+      const angle = Math.atan2(dy, dx);
+
+      stick.style.transform = `translate(${dist*Math.cos(angle)}px, ${dist*Math.sin(angle)}px)`;
+
+      keys["w"] = dy < -20;
+      keys["s"] = dy > 20;
+      keys["a"] = dx < -20;
+      keys["d"] = dx > 20;
+    }
+
+    function stopJoystick() {
+      dragging = false;
+      stick.style.transform = "translate(0,0)";
+      keys["w"] = keys["a"] = keys["s"] = keys["d"] = false;
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      drawMaze();
+      drawPlayer();
+      drawMonster();
+
+      updatePlayer();
+      updateMonster();
+
+      if (transition > 0) {
+        ctx.fillStyle = `rgba(0,0,0,${transition})`;
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        transition -= 0.05;
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    resizeCanvas();
+    gameLoop();
+  </script>
+</body>
+</html>

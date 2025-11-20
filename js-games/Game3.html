@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐍 Snake Game</title>
+  <style>
+    body {
+      font-family: "Times New Roman", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #c6f7c6;
+      transition: background-color 0.5s ease;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+
+    canvas {
+      border-radius: 10px;
+      margin-top: 10px;
+      background-color: #9be79b;
+      border: 2px solid #000;
+      display: none;
+      transition: background-color 0.5s ease;
+    }
+
+    .button {
+      background-color: #000;
+      color: white;
+      padding: 15px;
+      margin-top: 10px;
+      font-size: 18px;
+      width: 100%;
+      border-radius: 5px;
+      cursor: pointer;
+      border: none;
+      transition: 0.3s;
+    }
+
+    .button:hover { background-color: #444; }
+
+    .input, select, input[type="color"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    .scoreboard {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- USERNAME -->
+  <div id="usernameContainer" class="container">
+    <h1>Set Your Username</h1>
+    <input id="usernameInput" class="input" type="text" placeholder="Enter a username" />
+    <button id="saveUsername" class="button">Save</button>
+  </div>
+
+  <!-- MAIN MENU -->
+  <div id="menuContainer" class="container hidden">
+    <h1>🐍 Snake Game 🐍</h1>
+    <p id="welcomeUser"></p>
+    <p>High Score: <span id="menuHighScore">0</span></p>
+    <button id="playButton" class="button">Play</button>
+    <button id="settingsButton" class="button">Settings</button>
+    <button id="creditsButton" class="button">Credits</button>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsContainer" class="container hidden">
+    <h2>Settings</h2>
+
+    <h3>Controls</h3>
+    <button id="arrowKeysButton" class="button">Arrow Keys</button>
+    <button id="wasdButton" class="button">W A S D</button>
+
+    <hr>
+
+    <h3>Customize Game</h3>
+    <label>Snake Color:</label>
+    <input type="color" id="snakeColorPicker" value="#008000">
+
+    <label>Background Color:</label>
+    <input type="color" id="colorPicker" value="#C6F7C6">
+
+    <label>Fruit Type:</label>
+    <select id="fruitTypeSelect">
+      <option value="apple">🍎 Apple</option>
+      <option value="grape">🍇 Grape</option>
+      <option value="watermelon">🍉 Watermelon</option>
+    </select>
+
+    <label>Board Size:</label>
+    <select id="boardSizeSelect">
+      <option value="400">Large (400px)</option>
+      <option value="300">Medium (300px)</option>
+      <option value="200">Small (200px)</option>
+    </select>
+
+    <button id="applySettings" class="button">Apply Settings</button>
+    <button id="goBackFromSettings" class="button">Go Back</button>
+  </div>
+
+  <!-- CREDITS -->
+  <div id="creditsContainer" class="container hidden">
+    <h1>Credits</h1>
+    <p><strong>Created by:</strong> Jonathan</p>
+    <button id="goBackFromCredits" class="button">Go Back</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="gameContainer" class="container hidden">
+    <div class="scoreboard">
+      <span>Score: <span id="scoreDisplay">0</span></span>
+      <span>High Score: <span id="highScoreDisplay">0</span></span>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameOverContainer" class="container hidden">
+    <h2>Game Over!</h2>
+    <p>Score: <span id="finalScore"></span></p>
+    <p>High Score: <span id="finalHighScore"></span></p>
+    <button id="restartButton" class="button">Restart</button>
+    <button id="goBackToMenu" class="button">Back to Menu</button>
+  </div>
+
+  <script>
+    // === ELEMENTS ===
+    const usernameContainer = document.getElementById("usernameContainer");
+    const usernameInput = document.getElementById("usernameInput");
+    const saveUsername = document.getElementById("saveUsername");
+    const menuContainer = document.getElementById("menuContainer");
+    const welcomeUser = document.getElementById("welcomeUser");
+    const settingsContainer = document.getElementById("settingsContainer");
+    const creditsContainer = document.getElementById("creditsContainer");
+    const playButton = document.getElementById("playButton");
+    const settingsButton = document.getElementById("settingsButton");
+    const creditsButton = document.getElementById("creditsButton");
+    const goBackFromSettings = document.getElementById("goBackFromSettings");
+    const goBackFromCredits = document.getElementById("goBackFromCredits");
+    const gameContainer = document.getElementById("gameContainer");
+    const gameCanvas = document.getElementById("gameCanvas");
+    const ctx = gameCanvas.getContext("2d");
+    const gameOverContainer = document.getElementById("gameOverContainer");
+    const finalScore = document.getElementById("finalScore");
+    const finalHighScore = document.getElementById("finalHighScore");
+    const restartButton = document.getElementById("restartButton");
+    const goBackToMenu = document.getElementById("goBackToMenu");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const highScoreDisplay = document.getElementById("highScoreDisplay");
+    const menuHighScore = document.getElementById("menuHighScore");
+
+    const arrowKeysButton = document.getElementById("arrowKeysButton");
+    const wasdButton = document.getElementById("wasdButton");
+
+    const colorPicker = document.getElementById("colorPicker");
+    const snakeColorPicker = document.getElementById("snakeColorPicker");
+    const fruitTypeSelect = document.getElementById("fruitTypeSelect");
+    const boardSizeSelect = document.getElementById("boardSizeSelect");
+    const applySettings = document.getElementById("applySettings");
+
+    // === LOAD SETTINGS ===
+    let controlMode = localStorage.getItem("controlMode") || "ARROWS";
+    let bgColor = localStorage.getItem("snake_bgColor") || "#C6F7C6";
+    let snakeColor = localStorage.getItem("snake_snakeColor") || "#008000";
+    let fruitType = localStorage.getItem("snake_fruitType") || "apple";
+    let boardSize = parseInt(localStorage.getItem("snake_boardSize")) || 400;
+    let highScore = parseInt(localStorage.getItem("snake_highScore")) || 0;
+
+    document.body.style.backgroundColor = bgColor;
+    colorPicker.value = bgColor;
+    snakeColorPicker.value = snakeColor;
+    fruitTypeSelect.value = fruitType;
+    boardSizeSelect.value = boardSize;
+    gameCanvas.width = gameCanvas.height = boardSize;
+    highScoreDisplay.textContent = highScore;
+    menuHighScore.textContent = highScore;
+
+    // === USERNAME ===
+    let username = localStorage.getItem("snake_username");
+    if (username) {
+      usernameContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+      welcomeUser.textContent = `Welcome back, ${username}!`;
+    }
+
+    saveUsername.addEventListener("click", () => {
+      const name = usernameInput.value.trim();
+      if (name.length < 3) return alert("Username must be at least 3 characters!");
+      username = name;
+      localStorage.setItem("snake_username", username);
+      usernameContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+      welcomeUser.textContent = `Welcome, ${username}!`;
+    });
+
+    // === GAME VARIABLES ===
+    const tileSize = 20;
+    let snake, direction, food, score, lastTime = 0;
+    const speed = 100; // ms per move
+
+    function initGame() {
+      // Center spawn
+      const center = Math.floor(boardSize / (2 * tileSize)) * tileSize;
+      snake = [
+        { x: center, y: center },
+        { x: center - tileSize, y: center },
+        { x: center - 2 * tileSize, y: center }
+      ];
+      direction = "RIGHT";
+      score = 0;
+      scoreDisplay.textContent = score;
+      spawnFood();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function drawSnake() {
+      snake.forEach((part, index) => {
+        ctx.fillStyle = snakeColor;
+        ctx.beginPath();
+        ctx.roundRect(part.x, part.y, tileSize, tileSize, 5);
+        ctx.fill();
+        // Add eyes on head
+        if (index === 0) {
+          const eyeSize = 4;
+          const offset = 5;
+          ctx.fillStyle = "white";
+          let leftEye, rightEye;
+          if (direction === "RIGHT") {
+            leftEye = { x: part.x + tileSize - offset - 2, y: part.y + 5 };
+            rightEye = { x: part.x + tileSize - offset - 2, y: part.y + tileSize - 10 };
+          } else if (direction === "LEFT") {
+            leftEye = { x: part.x + offset, y: part.y + 5 };
+            rightEye = { x: part.x + offset, y: part.y + tileSize - 10 };
+          } else if (direction === "UP") {
+            leftEye = { x: part.x + 5, y: part.y + offset };
+            rightEye = { x: part.x + tileSize - 10, y: part.y + offset };
+          } else if (direction === "DOWN") {
+            leftEye = { x: part.x + 5, y: part.y + tileSize - offset - 2 };
+            rightEye = { x: part.x + tileSize - 10, y: part.y + tileSize - offset - 2 };
+          }
+          [leftEye, rightEye].forEach(eye => {
+            ctx.beginPath();
+            ctx.arc(eye.x, eye.y, eyeSize, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "black";
+            ctx.beginPath();
+            ctx.arc(eye.x, eye.y, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "white";
+          });
+        }
+      });
+    }
+
+    function spawnFood() {
+      const x = Math.floor(Math.random() * (boardSize / tileSize)) * tileSize;
+      const y = Math.floor(Math.random() * (boardSize / tileSize)) * tileSize;
+      food = { x, y };
+    }
+
+    function drawFood() {
+      const emojiMap = { apple: "🍎", grape: "🍇", watermelon: "🍉" };
+      ctx.font = `${tileSize}px Arial`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(emojiMap[fruitType], food.x + tileSize / 2, food.y + tileSize / 2);
+    }
+
+    function moveSnake() {
+      const head = { ...snake[0] };
+      switch (direction) {
+        case "UP": head.y -= tileSize; break;
+        case "DOWN": head.y += tileSize; break;
+        case "LEFT": head.x -= tileSize; break;
+        case "RIGHT": head.x += tileSize; break;
+      }
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        scoreDisplay.textContent = score;
+        spawnFood();
+      } else {
+        snake.pop();
+      }
+    }
+
+    function checkCollision() {
+      const head = snake[0];
+      if (
+        head.x < 0 || head.x >= boardSize ||
+        head.y < 0 || head.y >= boardSize ||
+        snake.slice(1).some(p => p.x === head.x && p.y === head.y)
+      ) {
+        endGame();
+        return true;
+      }
+      return false;
+    }
+
+    function endGame() {
+      finalScore.textContent = score;
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem("snake_highScore", highScore);
+      }
+      finalHighScore.textContent = highScore;
+      highScoreDisplay.textContent = highScore;
+      menuHighScore.textContent = highScore;
+      gameContainer.classList.add("hidden");
+      gameOverContainer.classList.remove("hidden");
+    }
+
+    function gameLoop(timestamp) {
+      if (!lastTime) lastTime = timestamp;
+      const delta = timestamp - lastTime;
+      if (delta > speed) {
+        ctx.clearRect(0, 0, boardSize, boardSize);
+        moveSnake();
+        if (checkCollision()) return;
+        drawSnake();
+        drawFood();
+        lastTime = timestamp;
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    // === CONTROLS ===
+    document.addEventListener("keydown", e => {
+      const key = e.key.toLowerCase();
+      if (controlMode === "ARROWS") {
+        if (key === "arrowup" && direction !== "DOWN") direction = "UP";
+        if (key === "arrowdown" && direction !== "UP") direction = "DOWN";
+        if (key === "arrowleft" && direction !== "RIGHT") direction = "LEFT";
+        if (key === "arrowright" && direction !== "LEFT") direction = "RIGHT";
+      } else {
+        if (key === "w" && direction !== "DOWN") direction = "UP";
+        if (key === "s" && direction !== "UP") direction = "DOWN";
+        if (key === "a" && direction !== "RIGHT") direction = "LEFT";
+        if (key === "d" && direction !== "LEFT") direction = "RIGHT";
+      }
+    });
+
+    // === BUTTONS ===
+    playButton.addEventListener("click", () => {
+      menuContainer.classList.add("hidden");
+      gameOverContainer.classList.add("hidden");
+      gameContainer.classList.remove("hidden");
+      gameCanvas.style.display = "block";
+      lastTime = 0;
+      initGame();
+    });
+
+    restartButton.addEventListener("click", () => {
+      gameOverContainer.classList.add("hidden");
+      gameContainer.classList.remove("hidden");
+      lastTime = 0;
+      initGame();
+    });
+
+    goBackToMenu.addEventListener("click", () => {
+      gameOverContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+    });
+
+    // === SETTINGS ===
+    settingsButton.addEventListener("click", () => {
+      menuContainer.classList.add("hidden");
+      settingsContainer.classList.remove("hidden");
+    });
+
+    goBackFromSettings.addEventListener("click", () => {
+      settingsContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+    });
+
+    arrowKeysButton.addEventListener("click", () => {
+      controlMode = "ARROWS";
+      localStorage.setItem("controlMode", "ARROWS");
+      alert("Control Scheme: Arrow Keys ✅");
+    });
+
+    wasdButton.addEventListener("click", () => {
+      controlMode = "WASD";
+      localStorage.setItem("controlMode", "WASD");
+      alert("Control Scheme: W A S D ✅");
+    });
+
+    applySettings.addEventListener("click", () => {
+      bgColor = colorPicker.value;
+      snakeColor = snakeColorPicker.value;
+      fruitType = fruitTypeSelect.value;
+      boardSize = parseInt(boardSizeSelect.value);
+
+      document.body.style.backgroundColor = bgColor;
+      gameCanvas.width = gameCanvas.height = boardSize;
+
+      localStorage.setItem("snake_bgColor", bgColor);
+      localStorage.setItem("snake_snakeColor", snakeColor);
+      localStorage.setItem("snake_fruitType", fruitType);
+      localStorage.setItem("snake_boardSize", boardSize);
+
+      alert("✅ Settings applied!");
+    });
+
+    creditsButton.addEventListener("click", () => {
+      menuContainer.classList.add("hidden");
+      creditsContainer.classList.remove("hidden");
+    });
+
+    goBackFromCredits.addEventListener("click", () => {
+      creditsContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+    });
+  </script>
+</body>
+</html>
+
+
+

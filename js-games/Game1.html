@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Number Guessing Game</title>
+  <style>
+    body {
+      font-family: "Times New Roman", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #ffe5b4;
+      background-size: cover;
+      background-position: center;
+      transition: background-image 1s ease-in-out;
+    }
+
+    .game-container,
+    .menu-container,
+    .mode-container,
+    .settings-container,
+    .customize-container,
+    .credits-container,
+    .leaderboard-container,
+    .username-container {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+
+    .button {
+      background-color: #000;
+      color: white;
+      padding: 15px;
+      margin-top: 15px;
+      font-size: 18px;
+      width: 100%;
+      border-radius: 5px;
+      cursor: pointer;
+      border: none;
+      transition: 0.3s;
+    }
+
+    .button:hover {
+      background-color: #444;
+    }
+
+    .input {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+
+    .message {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #333;
+      font-weight: bold;
+      transition: color 0.4s ease;
+    }
+
+    .attempts {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .leaderboard {
+      text-align: left;
+      margin-top: 15px;
+    }
+
+    .leaderboard h3 {
+      text-align: center;
+    }
+
+    #colorPicker {
+      padding: 10px;
+      margin-top: 10px;
+      background-color: #fff;
+      border-radius: 5px;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    h1 {
+      color: #222;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+
+    .shake {
+      animation: shake 0.3s ease;
+      border-color: red;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- USERNAME -->
+  <div id="usernameContainer" class="username-container">
+    <h1>Set Your Username</h1>
+    <input id="usernameInput" class="input" type="text" placeholder="Enter a username" />
+    <button id="saveUsername" class="button">Save</button>
+  </div>
+
+  <!-- MENU -->
+  <div id="menuContainer" class="menu-container hidden">
+    <h1>Welcome to Number Guessing Game</h1>
+    <p id="welcomeUser"></p>
+    <button id="startGame" class="button">Start Game</button>
+    <button id="settingsButton" class="button">Settings</button>
+  </div>
+
+  <!-- MODE SELECTION -->
+  <div id="modeContainer" class="mode-container hidden">
+    <h1>Choose Difficulty</h1>
+    <button id="easyMode" class="button">Easy (1–20)</button>
+    <button id="normalMode" class="button">Normal (1–100)</button>
+    <button id="hardMode" class="button">Hard (1–1,000)</button>
+    <button id="impossibleMode" class="button">Impossible (1–10,000)</button>
+    <button id="goBackFromMode" class="button">Go Back</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="gameContainer" class="game-container hidden">
+    <h1>Number Guessing Game</h1>
+    <p>Guess the number between <span id="range"></span>.</p>
+    <input id="guessInput" type="number" class="input" placeholder="Enter your guess" />
+    <button id="submitGuess" class="button">Submit Guess</button>
+    <button id="resetGame" class="button hidden">Play Again</button>
+    <div id="message" class="message"></div>
+    <div id="attempts" class="attempts">Attempts: 0</div>
+    <div id="leaderboard" class="leaderboard hidden"></div>
+    <button id="goBackFromGame" class="button">Go Back to Menu</button>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsContainer" class="settings-container hidden">
+    <h1>Settings</h1>
+    <button id="customizeButton" class="button">Customize</button>
+    <button id="creditsButton" class="button">Credits</button>
+    <button id="goBackFromSettings" class="button">Go Back</button>
+  </div>
+
+  <!-- CUSTOMIZE -->
+  <div id="customizeContainer" class="customize-container hidden">
+    <h1>Customize Background</h1>
+    <input type="color" id="colorPicker" value="#FFE5B4" />
+    <button id="applyColor" class="button">Apply Color</button>
+    <button id="goBackFromCustomize" class="button">Go Back</button>
+  </div>
+
+  <!-- CREDITS -->
+  <div id="creditsContainer" class="credits-container hidden">
+    <h1>Credits</h1>
+    <p><strong>Created by:</strong> Jonathan</p>
+    <p><strong>Version:</strong> 3.8 (Separate Leaderboards)</p>
+    <button id="goBackFromCredits" class="button">Go Back</button>
+  </div>
+
+  <script>
+    // ELEMENTS
+    const usernameContainer = document.getElementById("usernameContainer");
+    const usernameInput = document.getElementById("usernameInput");
+    const saveUsernameButton = document.getElementById("saveUsername");
+    const menuContainer = document.getElementById("menuContainer");
+    const startGameButton = document.getElementById("startGame");
+    const settingsButton = document.getElementById("settingsButton");
+    const easyModeButton = document.getElementById("easyMode");
+    const normalModeButton = document.getElementById("normalMode");
+    const hardModeButton = document.getElementById("hardMode");
+    const impossibleModeButton = document.getElementById("impossibleMode");
+    const modeContainer = document.getElementById("modeContainer");
+    const gameContainer = document.getElementById("gameContainer");
+    const guessInput = document.getElementById("guessInput");
+    const submitGuessButton = document.getElementById("submitGuess");
+    const resetGameButton = document.getElementById("resetGame");
+    const messageDiv = document.getElementById("message");
+    const attemptsDiv = document.getElementById("attempts");
+    const leaderboardDiv = document.getElementById("leaderboard");
+    const rangeSpan = document.getElementById("range");
+    const welcomeUser = document.getElementById("welcomeUser");
+
+    // VARIABLES
+    let username = localStorage.getItem("username");
+    let secretNumber = 0;
+    let attempts = 0;
+    let gameOver = false;
+    let debounce = false;
+    let numberRange = { min: 1, max: 100 };
+
+    // USERNAME SYSTEM
+    if (username) {
+      usernameContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+      welcomeUser.textContent = `Welcome back, ${username}!`;
+    }
+
+    saveUsernameButton.addEventListener("click", () => {
+      const name = usernameInput.value.trim();
+      if (name.length < 3) {
+        alert("Username must be at least 3 characters!");
+        return;
+      }
+      username = name;
+      localStorage.setItem("username", username);
+      usernameContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+      welcomeUser.textContent = `Welcome, ${username}!`;
+    });
+
+    function debounceGuess() {
+      if (debounce) return true;
+      debounce = true;
+      setTimeout(() => (debounce = false), 400);
+      return false;
+    }
+
+    function startGame() {
+      secretNumber = Math.floor(Math.random() * (numberRange.max - numberRange.min + 1)) + numberRange.min;
+      attempts = 0;
+      gameOver = false;
+      guessInput.value = "";
+      guessInput.disabled = false;
+      submitGuessButton.disabled = false;
+      messageDiv.textContent = `Guess a number between ${numberRange.min} and ${numberRange.max}!`;
+      messageDiv.style.color = "#333";
+      attemptsDiv.textContent = `Attempts: ${attempts}`;
+      leaderboardDiv.classList.add("hidden");
+      resetGameButton.classList.add("hidden");
+      gameContainer.classList.remove("hidden");
+      modeContainer.classList.add("hidden");
+    }
+
+    function getHotness(guess) {
+      const diff = Math.abs(secretNumber - guess);
+      const rangeSize = numberRange.max - numberRange.min;
+      const hotThreshold = rangeSize * 0.02;
+      const warmThreshold = rangeSize * 0.1;
+      const coldThreshold = rangeSize * 0.25;
+
+      if (diff === 0) {
+        messageDiv.style.color = "#28a745";
+        return "🎉 You guessed it!";
+      }
+      if (diff <= hotThreshold / 2) {
+        messageDiv.style.color = "#ff0000";
+        return "🔥 Melting!";
+      }
+      if (diff <= hotThreshold) {
+        messageDiv.style.color = "#ff4500";
+        return "🔥 Hot!";
+      }
+      if (diff <= warmThreshold) {
+        messageDiv.style.color = "#ffae42";
+        return "🌡️ Warm!";
+      }
+      if (diff <= coldThreshold) {
+        messageDiv.style.color = "#00bfff";
+        return "❄️ Cold!";
+      }
+      messageDiv.style.color = "#1e90ff";
+      return "🥶 Freezing!";
+    }
+
+    function handleGuess() {
+      if (debounceGuess()) return;
+      if (gameOver) return;
+
+      const playerGuess = parseInt(guessInput.value);
+      if (isNaN(playerGuess)) {
+        messageDiv.textContent = "⚠️ Please enter a valid number!";
+        messageDiv.style.color = "red";
+        return;
+      }
+
+      if (playerGuess < numberRange.min || playerGuess > numberRange.max) {
+        messageDiv.textContent = `🚫 Out of range! Enter between ${numberRange.min} and ${numberRange.max}.`;
+        messageDiv.style.color = "red";
+        guessInput.classList.add("shake");
+        setTimeout(() => guessInput.classList.remove("shake"), 300);
+        return;
+      }
+
+      attempts++;
+      attemptsDiv.textContent = `Attempts: ${attempts}`;
+      messageDiv.textContent = getHotness(playerGuess);
+
+      if (playerGuess === secretNumber) {
+        gameOver = true;
+        endGame();
+      }
+    }
+
+    function endGame() {
+      guessInput.disabled = true;
+      submitGuessButton.disabled = true;
+      resetGameButton.classList.remove("hidden");
+      saveScore();
+      displayLeaderboard();
+    }
+
+    // ✅ SEPARATE LEADERBOARDS
+    function saveScore() {
+      const key = `leaderboard_${numberRange.max}`;
+      let scores = JSON.parse(localStorage.getItem(key)) || [];
+      scores.push({ name: username, attempts });
+      scores.sort((a, b) => a.attempts - b.attempts);
+      if (scores.length > 5) scores = scores.slice(0, 5);
+      localStorage.setItem(key, JSON.stringify(scores));
+    }
+
+    function displayLeaderboard() {
+      const key = `leaderboard_${numberRange.max}`;
+      const scores = JSON.parse(localStorage.getItem(key)) || [];
+      let modeName =
+        numberRange.max === 20 ? "Easy" :
+        numberRange.max === 100 ? "Normal" :
+        numberRange.max === 1000 ? "Hard" :
+        "Impossible";
+
+      leaderboardDiv.innerHTML = `<h3>🏆 ${modeName} Leaderboard 🏆</h3>` +
+        (scores.length
+          ? scores.map((s, i) => `${i + 1}. ${s.name} — ${s.attempts} attempts`).join("<br>")
+          : "<p>No scores yet!</p>");
+
+      leaderboardDiv.classList.remove("hidden");
+    }
+
+    // BUTTON HANDLERS
+    startGameButton.addEventListener("click", () => {
+      menuContainer.classList.add("hidden");
+      modeContainer.classList.remove("hidden");
+    });
+
+    easyModeButton.addEventListener("click", () => {
+      numberRange = { min: 1, max: 20 };
+      guessInput.min = 1;
+      guessInput.max = 20;
+      rangeSpan.textContent = "1–20";
+      startGame();
+    });
+
+    normalModeButton.addEventListener("click", () => {
+      numberRange = { min: 1, max: 100 };
+      guessInput.min = 1;
+      guessInput.max = 100;
+      rangeSpan.textContent = "1–100";
+      startGame();
+    });
+
+    hardModeButton.addEventListener("click", () => {
+      numberRange = { min: 1, max: 1000 };
+      guessInput.min = 1;
+      guessInput.max = 1000;
+      rangeSpan.textContent = "1–1,000";
+      startGame();
+    });
+
+    impossibleModeButton.addEventListener("click", () => {
+      numberRange = { min: 1, max: 10000 };
+      guessInput.min = 1;
+      guessInput.max = 10000;
+      rangeSpan.textContent = "1–10,000";
+      startGame();
+    });
+
+    submitGuessButton.addEventListener("click", handleGuess);
+    guessInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") handleGuess();
+    });
+    resetGameButton.addEventListener("click", startGame);
+
+    document.getElementById("goBackFromMode").addEventListener("click", () => {
+      modeContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+    });
+
+    document.getElementById("goBackFromGame").addEventListener("click", () => {
+      gameContainer.classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+    });
+
+    // SETTINGS
+    settingsButton.addEventListener("click", () => {
+      menuContainer.classList.add("hidden");
+      document.getElementById("settingsContainer").classList.remove("hidden");
+    });
+
+    document.getElementById("goBackFromSettings").addEventListener("click", () => {
+      document.getElementById("settingsContainer").classList.add("hidden");
+      menuContainer.classList.remove("hidden");
+    });
+
+    // CUSTOMIZE
+    document.getElementById("customizeButton").addEventListener("click", () => {
+      document.getElementById("settingsContainer").classList.add("hidden");
+      document.getElementById("customizeContainer").classList.remove("hidden");
+    });
+
+    document.getElementById("applyColor").addEventListener("click", () => {
+      const color = document.getElementById("colorPicker").value;
+      document.body.style.backgroundColor = color;
+      localStorage.setItem("bgColor", color);
+    });
+
+    document.getElementById("goBackFromCustomize").addEventListener("click", () => {
+      document.getElementById("customizeContainer").classList.add("hidden");
+      document.getElementById("settingsContainer").classList.remove("hidden");
+    });
+
+    // CREDITS
+    document.getElementById("creditsButton").addEventListener("click", () => {
+      document.getElementById("settingsContainer").classList.add("hidden");
+      document.getElementById("creditsContainer").classList.remove("hidden");
+    });
+
+    document.getElementById("goBackFromCredits").addEventListener("click", () => {
+      document.getElementById("creditsContainer").classList.add("hidden");
+      document.getElementById("settingsContainer").classList.remove("hidden");
+    });
+
+    // BACKGROUND
+    const savedColor = localStorage.getItem("bgColor");
+    if (savedColor) document.body.style.backgroundColor = savedColor;
+  </script>
+</body>
+</html>

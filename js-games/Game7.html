@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physics Sandbox</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #222; }
+    #toolbox {
+      position: absolute; top: 10px; left: 10px; z-index: 10;
+      background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;
+    }
+    button { margin: 5px; padding: 5px 10px; }
+  </style>
+</head>
+<body>
+
+<div id="toolbox">
+  <button onclick="addBox()">Add Box</button>
+  <button onclick="addBall()">Add Ball</button>
+  <button onclick="resetScene()">Reset</button>
+</div>
+
+<canvas id="sandbox"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+const { Engine, Render, World, Bodies, Mouse, MouseConstraint } = Matter;
+
+// Create engine and world
+const engine = Engine.create();
+const world = engine.world;
+
+// Create renderer
+const canvas = document.getElementById('sandbox');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const render = Render.create({
+  canvas: canvas,
+  engine: engine,
+  options: {
+    wireframes: false,
+    background: '#222',
+    width: canvas.width,
+    height: canvas.height
+  }
+});
+
+Render.run(render);
+Engine.run(engine);
+
+// Add ground
+const ground = Bodies.rectangle(canvas.width/2, canvas.height-20, canvas.width, 40, { isStatic: true, render: { fillStyle: '#555' } });
+World.add(world, ground);
+
+// Add mouse control
+const mouse = Mouse.create(canvas);
+const mouseConstraint = MouseConstraint.create(engine, {
+  mouse: mouse,
+  constraint: { stiffness: 0.2, render: { visible: false } }
+});
+World.add(world, mouseConstraint);
+
+// Functions to add objects
+function addBox() {
+  const box = Bodies.rectangle(Math.random()*canvas.width, 50, 50, 50, { restitution: 0.5, render: { fillStyle: '#00ffcc' } });
+  World.add(world, box);
+}
+
+function addBall() {
+  const ball = Bodies.circle(Math.random()*canvas.width, 50, 25, { restitution: 0.9, render: { fillStyle: '#ff5500' } });
+  World.add(world, ball);
+}
+
+// Reset scene
+function resetScene() {
+  World.clear(world, false);
+  World.add(world, ground);
+  World.add(world, mouseConstraint);
+}
+
+// Resize canvas dynamically
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  Render.lookAt(render, { min: { x: 0, y: 0 }, max: { x: canvas.width, y: canvas.height } });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Oxygen Clicker + Boss Fight</title>
+<style>
+    body {
+        font-family: 'Times New Roman', sans-serif;
+        color: #fff;
+        text-align: center;
+        margin: 0;
+        background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+        overflow: hidden;
+    }
+
+    /* Floating cells background */
+    .cell {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(0, 255, 255, 0.2);
+        pointer-events: none;
+        animation: floatCell linear infinite;
+    }
+    @keyframes floatCell {
+        0% { transform: translateY(100vh) scale(0.5);}
+        100% { transform: translateY(-50px) scale(1);}
+    }
+
+    #game-container {
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 30px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 650px;
+        margin: 50px auto;
+        position: relative;
+        z-index: 2;
+    }
+    #oxygen-count {
+        font-size: 28px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .button {
+        background: linear-gradient(to right, #ff0000, #ff4d4d);
+        color: white;
+        padding: 15px 30px;
+        border: none;
+        font-size: 18px;
+        border-radius: 25px;
+        cursor: pointer;
+        width: 80%;
+        margin-top: 15px;
+        text-transform: uppercase;
+        transition: 0.2s;
+    }
+    .button:hover:not(:disabled) {
+        transform: scale(1.05);
+    }
+    .button:disabled {
+        background: #555;
+        cursor: not-allowed;
+    }
+    .button-upgrade {
+        background: linear-gradient(to right, #ff8000, #ffcc00);
+    }
+    #info { font-size: 18px; margin-top: 20px; }
+    h1 { font-size: 36px; margin-top: 0; }
+    h3 { font-size: 24px; margin: 10px 0; }
+    p { font-size: 16px; }
+
+    .float-text {
+        position: absolute;
+        color: #0ff;
+        font-weight: bold;
+        pointer-events: none;
+        animation: floatUp 1s ease-out forwards;
+    }
+    @keyframes floatUp {
+        0% {opacity:1; transform: translateY(0);}
+        100% {opacity:0; transform: translateY(-50px);}
+    }
+
+    /* Boss bar */
+    #boss-container {
+        display: none;
+        margin-top: 20px;
+        background: #222;
+        border-radius: 10px;
+        position: relative;
+        height: 30px;
+        width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+        overflow: hidden;
+    }
+    #boss-bar {
+        background: #ff5555;
+        height: 100%;
+        width: 100%;
+        transition: width 0.2s;
+    }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>Super Oxygen Clicker</h1>
+    <div id="oxygen-count">Oxygen Molecules: 0</div>
+    <button id="click-button" class="button">Bloodstream (Click for Oxygen)</button>
+    
+    <div class="upgrade">
+        <h3>Upgrades</h3>
+        <button id="upgrade1" class="button button-upgrade" disabled>Energy (Cost: 10)</button>
+        <button id="upgrade2" class="button button-upgrade" disabled>Oxygen Absorption (Cost: 50)</button>
+        <button id="upgrade3" class="button button-upgrade" disabled>Cell Efficiency (Cost: 200)</button>
+        <button id="upgrade4" class="button button-upgrade" disabled>Lung Capacity (Cost: 500)</button>
+        <button id="upgrade5" class="button button-upgrade" disabled>Heart Pump (Cost: 1000)</button>
+        <button id="upgrade6" class="button button-upgrade" disabled>White Blood Cells (Cost: 2000)</button>
+    </div>
+
+    <div id="info">
+        <p>Oxygen per click: <span id="oxygen-per-click">1</span></p>
+        <p>Oxygen per second: <span id="oxygen-per-second">0</span></p>
+    </div>
+
+    <div id="boss-container">
+        <div id="boss-bar"></div>
+    </div>
+</div>
+
+<script>
+let oxygenCount = 0;
+let oxygenPerClick = 1;
+let oxygenPerSecond = 0;
+
+let upgrade1Level = 0, upgrade2Level = 0, upgrade3Level = 0, upgrade4Level=0, upgrade5Level=0, upgrade6Level=0;
+let upgrade1Cost = 10, upgrade2Cost = 50, upgrade3Cost = 200, upgrade4Cost=500, upgrade5Cost=1000, upgrade6Cost=2000;
+
+const oxygenCountDisplay = document.getElementById('oxygen-count');
+const oxygenPerClickDisplay = document.getElementById('oxygen-per-click');
+const oxygenPerSecondDisplay = document.getElementById('oxygen-per-second');
+const clickButton = document.getElementById('click-button');
+const upgradeButtons = [
+    document.getElementById('upgrade1'),
+    document.getElementById('upgrade2'),
+    document.getElementById('upgrade3'),
+    document.getElementById('upgrade4'),
+    document.getElementById('upgrade5'),
+    document.getElementById('upgrade6')
+];
+
+const bossContainer = document.getElementById('boss-container');
+const bossBar = document.getElementById('boss-bar');
+
+let bossActive = false;
+let bossHP = 0;
+let bossMaxHP = 0;
+
+// Floating text effect
+function floatText(text, x, y) {
+    const span = document.createElement('span');
+    span.textContent = text;
+    span.className = 'float-text';
+    span.style.left = x + 'px';
+    span.style.top = y + 'px';
+    document.getElementById('game-container').appendChild(span);
+    setTimeout(() => span.remove(), 1000);
+}
+
+// Gain oxygen
+function gainOxygen(amount) {
+    oxygenCount += amount;
+    const rect = clickButton.getBoundingClientRect();
+    floatText('+'+amount, Math.random()*rect.width, rect.top-rect.height/2);
+    updateGame();
+}
+
+// Update game state
+function updateGame() {
+    oxygenCountDisplay.textContent = `Oxygen Molecules: ${oxygenCount}`;
+    oxygenPerClickDisplay.textContent = oxygenPerClick;
+    oxygenPerSecondDisplay.textContent = oxygenPerSecond;
+
+    const costs = [upgrade1Cost, upgrade2Cost, upgrade3Cost, upgrade4Cost, upgrade5Cost, upgrade6Cost];
+    const levels = [upgrade1Level, upgrade2Level, upgrade3Level, upgrade4Level, upgrade5Level, upgrade6Level];
+    const names = ["Energy","Oxygen Absorption","Cell Efficiency","Lung Capacity","Heart Pump","White Blood Cells"];
+
+    for(let i=0;i<6;i++){
+        upgradeButtons[i].disabled = oxygenCount < costs[i];
+        upgradeButtons[i].textContent = `${names[i]} (Level ${levels[i]}, Cost: ${costs[i]})`;
+    }
+
+    if(bossActive){
+        bossBar.style.width = (bossHP/bossMaxHP*100)+'%';
+        if(bossHP <= 0){
+            bossActive = false;
+            bossContainer.style.display = 'none';
+            gainOxygen(100 + Math.floor(Math.random()*100)); // reward
+        }
+    }
+
+    localStorage.setItem('oxygenGame', JSON.stringify({
+        oxygenCount, oxygenPerClick, oxygenPerSecond,
+        upgrade1Level, upgrade2Level, upgrade3Level, upgrade4Level, upgrade5Level, upgrade6Level,
+        upgrade1Cost, upgrade2Cost, upgrade3Cost, upgrade4Cost, upgrade5Cost, upgrade6Cost
+    }));
+}
+
+// Load saved game
+function loadGame(){
+    const saved = JSON.parse(localStorage.getItem('oxygenGame'));
+    if(saved){
+        Object.assign(window, saved);
+        updateGame();
+    }
+}
+
+// Event listeners
+clickButton.addEventListener('click', () => {
+    gainOxygen(oxygenPerClick);
+    if(bossActive){
+        bossHP -= oxygenPerClick;
+        updateGame();
+    }
+});
+
+const upgradeEffects = [
+    ()=>{oxygenPerClick+=1; upgrade1Level++; upgrade1Cost=Math.floor(upgrade1Cost*1.5);},
+    ()=>{oxygenPerClick+=2; upgrade2Level++; upgrade2Cost=Math.floor(upgrade2Cost*1.6);},
+    ()=>{oxygenPerSecond+=1; upgrade3Level++; upgrade3Cost=Math.floor(upgrade3Cost*1.7);},
+    ()=>{oxygenPerClick+=5; upgrade4Level++; upgrade4Cost=Math.floor(upgrade4Cost*2);},
+    ()=>{oxygenPerSecond+=5; upgrade5Level++; upgrade5Cost=Math.floor(upgrade5Cost*2.2);},
+    ()=>{ /* White Blood Cells auto-damage boss */ upgrade6Level++; upgrade6Cost=Math.floor(upgrade6Cost*2.5);}
+];
+
+upgradeButtons.forEach((btn,i)=>{
+    btn.addEventListener('click', ()=>{
+        const costs = [upgrade1Cost, upgrade2Cost, upgrade3Cost, upgrade4Cost, upgrade5Cost, upgrade6Cost];
+        if(oxygenCount >= costs[i]){
+            oxygenCount -= costs[i];
+            upgradeEffects[i]();
+            updateGame();
+        }
+    });
+});
+
+// Passive oxygen gain
+setInterval(()=>{
+    let bonus = oxygenPerSecond;
+    if(bossActive && upgrade6Level>0){
+        bossHP -= upgrade6Level; // auto damage
+        if(bossHP < 0) bossHP = 0;
+    }
+    if(bonus>0) gainOxygen(bonus);
+},1000);
+
+// Spacebar click
+let spacePressed = false;
+document.addEventListener('keydown', e => { if(e.key === ' ' && !spacePressed){ gainOxygen(oxygenPerClick); spacePressed=true; } });
+document.addEventListener('keyup', e=>{ if(e.key===' ') spacePressed=false; });
+
+// Random boss spawn
+function spawnBoss(){
+    if(bossActive) return;
+    bossActive = true;
+    bossMaxHP = 50 + Math.floor(Math.random()*50);
+    bossHP = bossMaxHP;
+    bossContainer.style.display = 'block';
+    setTimeout(()=>{
+        if(bossActive){
+            bossActive=false;
+            bossContainer.style.display='none';
+            oxygenCount = Math.max(0, oxygenCount - 50); // penalty
+            updateGame();
+        }
+    },30000); // 30 sec timer
+}
+
+setInterval(spawnBoss, 60000); // every 60 sec
+
+// Floating cells background
+function createCells(){
+    for(let i=0;i<50;i++){
+        const div=document.createElement('div');
+        div.className='cell';
+        const size=Math.random()*20+5;
+        div.style.width=size+'px';
+        div.style.height=size+'px';
+        div.style.left=Math.random()*window.innerWidth+'px';
+        div.style.animationDuration=(Math.random()*10+5)+'s';
+        document.body.appendChild(div);
+    }
+}
+createCells();
+
+loadGame();
+updateGame();
+</script>
+</body>
+</html>

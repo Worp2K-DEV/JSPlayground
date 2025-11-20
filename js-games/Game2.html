@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Catch Game Improved</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: linear-gradient(#8ec5fc, #e0c3fc);
+        margin: 0;
+        padding: 0;
+        user-select: none;
+    }
+
+    #game-container {
+        position: relative;
+        margin: 30px auto;
+        width: 500px;
+        height: 650px;
+        background: linear-gradient(#87CEEB, #4fa3d1);
+        border: 3px solid #333;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+
+    #basket {
+        position: absolute;
+        bottom: 15px;
+        width: 80px;
+        height: 40px;
+        background: gold;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+
+    .falling-object {
+        position: absolute;
+        width: 45px;
+        height: 45px;
+        top: -60px;
+        border-radius: 50%;
+        background: orange;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .bad {
+        background: black;
+    }
+
+    #hud {
+        margin-top: 10px;
+        font-size: 22px;
+    }
+
+    #start-btn {
+        margin-top: 15px;
+        padding: 12px 25px;
+        background: #28a745;
+        color: white;
+        font-size: 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    #start-btn:hover {
+        background: #218838;
+    }
+
+    #game-over {
+        display: none;
+        font-size: 28px;
+        margin-top: 20px;
+        color: #222;
+    }
+</style>
+</head>
+<body>
+
+<h1>🍊 Catch the Good, Avoid the Bad 💣</h1>
+
+<div id="hud">
+    Score: <span id="score">0</span> |
+    Lives: <span id="lives">3</span>
+</div>
+
+<div id="game-container">
+    <div id="basket"></div>
+</div>
+
+<button id="start-btn">Start Game</button>
+
+<div id="game-over"></div>
+
+<script>
+    const game = document.getElementById("game-container");
+    const basket = document.getElementById("basket");
+    const scoreText = document.getElementById("score");
+    const livesText = document.getElementById("lives");
+    const startBtn = document.getElementById("start-btn");
+    const gameOverText = document.getElementById("game-over");
+
+    let score = 0;
+    let lives = 3;
+    let basketX = 210;
+    let speed = 3;
+    let spawnRate = 1200;
+    let gameRunning = false;
+
+    let keys = { left: false, right: false };
+
+    basket.style.left = basketX + "px";
+
+    // ---------------- MOVEMENT ----------------
+    document.addEventListener("keydown", e => {
+        if (e.key === "ArrowLeft") keys.left = true;
+        if (e.key === "ArrowRight") keys.right = true;
+    });
+
+    document.addEventListener("keyup", e => {
+        if (e.key === "ArrowLeft") keys.left = false;
+        if (e.key === "ArrowRight") keys.right = false;
+    });
+
+    // Touch controls (mobile support)
+    game.addEventListener("touchstart", e => {
+        const x = e.touches[0].clientX;
+        keys.left = x < window.innerWidth / 2;
+        keys.right = x > window.innerWidth / 2;
+    });
+    game.addEventListener("touchend", () => {
+        keys.left = keys.right = false;
+    });
+
+    function moveBasket() {
+        if (!gameRunning) return;
+        if (keys.left) basketX -= speed * 2.5;
+        if (keys.right) basketX += speed * 2.5;
+
+        // prevent leaving screen
+        basketX = Math.max(0, Math.min(game.offsetWidth - basket.offsetWidth, basketX));
+
+        basket.style.left = basketX + "px";
+        requestAnimationFrame(moveBasket);
+    }
+
+    // ---------------- FALLING OBJECTS ----------------
+    function spawnObject() {
+        if (!gameRunning) return;
+
+        const obj = document.createElement("div");
+        obj.classList.add("falling-object");
+
+        const bad = Math.random() < 0.2;
+        if (bad) obj.classList.add("bad");
+
+        obj.style.left = Math.random() * (game.offsetWidth - 40) + "px";
+        game.appendChild(obj);
+
+        let y = -50;
+        let fallSpeed = 2 + Math.random() * speed;
+
+        function fall() {
+            if (!gameRunning) {
+                obj.remove();
+                return;
+            }
+
+            y += fallSpeed;
+            obj.style.top = y + "px";
+
+            // Collision detection
+            const basketRect = basket.getBoundingClientRect();
+            const objRect = obj.getBoundingClientRect();
+
+            if (
+                objRect.bottom >= basketRect.top &&
+                objRect.left < basketRect.right &&
+                objRect.right > basketRect.left
+            ) {
+                if (bad) {
+                    lives--;
+                } else {
+                    score += 10;
+                }
+                updateHUD();
+                obj.remove();
+                return;
+            }
+
+            // If falls off bottom
+            if (y > game.offsetHeight) {
+                if (!bad) lives--; // punish missing good objects
+                updateHUD();
+                obj.remove();
+                return;
+            }
+
+            requestAnimationFrame(fall);
+        }
+
+        requestAnimationFrame(fall);
+
+        // spawn again
+        setTimeout(spawnObject, spawnRate);
+    }
+
+    // ---------------- HUD ----------------
+    function updateHUD() {
+        scoreText.textContent = score;
+        livesText.textContent = lives;
+
+        if (lives <= 0) endGame();
+    }
+
+    // ---------------- GAME CONTROL ----------------
+    function startGame() {
+        score = 0;
+        lives = 3;
+        speed = 3;
+        spawnRate = 1200;
+        updateHUD();
+        gameRunning = true;
+        gameOverText.style.display = "none";
+        startBtn.style.display = "none";
+
+        moveBasket();
+        spawnObject();
+
+        // Difficulty increasing
+        const difficulty = setInterval(() => {
+            if (!gameRunning) return clearInterval(difficulty);
+            speed += 0.3;
+            spawnRate = Math.max(400, spawnRate - 60);
+        }, 3000);
+    }
+
+    function endGame() {
+        gameRunning = false;
+        gameOverText.style.display = "block";
+        gameOverText.textContent = `GAME OVER! Final Score: ${score}`;
+        startBtn.style.display = "inline-block";
+    }
+
+    startBtn.addEventListener("click", startGame);
+</script>
+
+</body>
+</html>
+
+
+
