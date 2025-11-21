@@ -4,107 +4,50 @@
 <title>Emoji Garden Sim</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-    body {
-        background:#222;
-        color:white;
-        font-family:Arial, sans-serif;
-        text-align:center;
-        padding:20px;
-    }
-
-    h1 { font-size:32px; }
-
-    #weather {
-        font-size:40px;
-        margin:10px 0;
-    }
-
-    #garden {
-        display:flex;
-        justify-content:center;
-        flex-wrap:wrap;
-        gap:20px;
-        margin-top:20px;
-    }
-
-    .plot {
-        background:#333;
-        width:120px;
-        height:150px;
-        border-radius:10px;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        cursor:pointer;
-        position:relative;
-        padding:5px;
-    }
-
-    .plot-emoji {
-        font-size:50px;
-    }
-
-    .plot-size {
-        margin:5px 0;
-    }
-
-    .bug {
-        position:absolute;
-        font-size:25px;
-        top:10px;
-        right:10px;
-        cursor:pointer;
-    }
-
-    .btn {
-        background:#444;
-        padding:10px;
-        margin:5px;
-        border-radius:8px;
-        cursor:pointer;
-    }
-
-    .btn:hover { background:#555; }
-
-    #money {
-        font-size:22px;
-        margin:15px 0;
-    }
-
-    #shop, #achievements {
-        background:#333;
-        padding:10px;
-        border-radius:10px;
-        margin-top:20px;
-        width:90%;
-        max-width:400px;
-        margin-left:auto;
-        margin-right:auto;
-    }
-
-    .progress-bar {
-        width: 100%;
-        background: #555;
-        border-radius: 5px;
-        overflow: hidden;
-        height: 10px;
-        margin-bottom: 5px;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: #0f0;
-        width: 0%;
-    }
+body {
+    background:#222;
+    color:white;
+    font-family:Arial, sans-serif;
+    text-align:center;
+    padding:20px;
+}
+h1 { font-size:32px; }
+#weather { font-size:40px; margin:10px 0; }
+#garden { display:flex; justify-content:center; flex-wrap:wrap; gap:20px; margin-top:20px; }
+.plot {
+    background:#333;
+    width:120px;
+    height:150px;
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    position:relative;
+    padding:5px;
+}
+.plot-emoji { font-size:50px; }
+.plot-size { margin:5px 0; }
+.bug {
+    position:absolute;
+    font-size:25px;
+    top:10px;
+    right:10px;
+    cursor:pointer;
+}
+.btn { background:#444; padding:10px; margin:5px; border-radius:8px; cursor:pointer; }
+.btn:hover { background:#555; }
+#money { font-size:22px; margin:15px 0; }
+#shop, #achievements { background:#333; padding:10px; border-radius:10px; margin-top:20px; width:90%; max-width:400px; margin-left:auto; margin-right:auto; }
+.progress-bar { width: 100%; background: #555; border-radius: 5px; overflow: hidden; height: 10px; margin-bottom: 5px; }
+.progress-fill { height: 100%; background: #0f0; width: 0%; }
 </style>
 </head>
 <body>
 
 <h1>🌼 Emoji Garden Sim Lite 🌼</h1>
-
 <div id="weather">☀️ Sunny</div>
-
 <div id="money">💰 0 coins</div>
 
 <h2>Your Garden</h2>
@@ -121,9 +64,7 @@
 <div id="achievements"></div>
 
 <script>
-// =====================================================
-// GAME DATA
-// =====================================================
+// ==================== GAME DATA ====================
 let money = parseInt(localStorage.getItem("money")) || 0;
 let growPower = parseInt(localStorage.getItem("growPower")) || 1;
 let autoGrow = parseInt(localStorage.getItem("autoGrow")) || 0;
@@ -144,71 +85,63 @@ const gardenDiv = document.getElementById("garden");
 const moneyDisplay = document.getElementById("money");
 const achieveDisplay = document.getElementById("achievements");
 
-// =====================================================
-// UI UPDATE
-// =====================================================
+// ==================== UI UPDATE ====================
 function updateGarden() {
     gardenDiv.innerHTML = "";
-    plots.forEach((plot, i) => {
-        let box = document.createElement("div");
-        box.className = "plot";
+    plots.forEach((plot,i)=>{
+        let box=document.createElement("div");
+        box.className="plot";
 
-        // Emoji
-        let emoji = document.createElement("div");
-        emoji.className = "plot-emoji";
-        emoji.textContent = plot.type;
+        let emoji=document.createElement("div");
+        emoji.className="plot-emoji";
+        emoji.textContent=plot.type;
         box.appendChild(emoji);
 
-        // Size display
-        let sizeText = document.createElement("div");
-        sizeText.className = "plot-size";
-        sizeText.textContent = "Size: " + Math.floor(plot.size);
+        let sizeText=document.createElement("div");
+        sizeText.className="plot-size";
+        sizeText.textContent="Size: "+Math.floor(plot.size);
         box.appendChild(sizeText);
 
-        // Progress bar
-        let progress = document.createElement("div");
-        progress.className = "progress-bar";
-        let fill = document.createElement("div");
-        fill.className = "progress-fill";
-        let pct = Math.min(plot.size / 50 * 100, 100);
-        fill.style.width = pct + "%";
+        let progress=document.createElement("div");
+        progress.className="progress-bar";
+        let fill=document.createElement("div");
+        fill.className="progress-fill";
+        fill.style.width=Math.min(plot.size/50*100,100)+"%";
         progress.appendChild(fill);
         box.appendChild(progress);
 
-        // Bug
-        if (plot.bug) {
-            let bug = document.createElement("div");
-            bug.className = "bug";
-            bug.innerHTML = "🐛";
-            bug.addEventListener("click", (e) => {
+        if(plot.bug){
+            let bug=document.createElement("div");
+            bug.className="bug";
+            bug.innerHTML="🐛";
+            bug.addEventListener("mousedown", e=>e.stopPropagation());
+            bug.addEventListener("click", e=>{
                 e.stopPropagation();
-                plot.bug = false;
-                money += 5;
-                let kills = parseInt(localStorage.getItem("bugKills")) || 0;
-                localStorage.setItem("bugKills", kills + 1);
+                plot.bug=false;
+                money+=5;
+                let kills=parseInt(localStorage.getItem("bugKills"))||0;
+                localStorage.setItem("bugKills",kills+1);
                 update();
             });
             box.appendChild(bug);
         }
 
         // Hold-to-grow
-        box.onmousedown = () => holdGrow(i);
-        box.onmouseup = () => stopHold();
+        box.onmousedown=()=>holdGrow(i);
+        box.onmouseup=()=>stopHold();
 
         // Sell button
-        let sellBtn = document.createElement("button");
-        sellBtn.className = "btn";
-        sellBtn.textContent = "Sell";
-
-        // FIX: prevent hold-to-grow interfering
-        sellBtn.addEventListener("mousedown", (e) => e.stopPropagation());
-        sellBtn.addEventListener("click", (e) => {
+        let sellBtn=document.createElement("button");
+        sellBtn.className="btn";
+        sellBtn.textContent="Sell";
+        sellBtn.addEventListener("mousedown", e=>e.stopPropagation());
+        sellBtn.addEventListener("click", e=>{
             e.stopPropagation();
-            let earned = Math.floor(plot.size);
-            if (earned > 0) {
-                money += earned;
-                plot.size = 0;
-                plot.type = "🌱";
+            let earned=Math.floor(plot.size);
+            if(earned>0){
+                money+=earned;
+                plot.size=0;
+                plot.type="🌱";
                 update();
             }
         });
@@ -218,168 +151,104 @@ function updateGarden() {
     });
 }
 
-function updateMoney() {
-    moneyDisplay.textContent = "💰 " + money + " coins";
-}
+function updateMoney(){ moneyDisplay.textContent="💰 "+money+" coins"; }
+function update(){ updateGarden(); updateMoney(); save(); }
 
-function update() {
-    updateGarden();
-    updateMoney();
-    save();
-}
-
-// =====================================================
-// HOLD TO GROW
-// =====================================================
-let held = false;
-function holdGrow(index) {
-    held = true;
-    function growLoop() {
-        if (!held) return;
+// ==================== HOLD TO GROW ====================
+let held=false;
+function holdGrow(index){
+    held=true;
+    function loop(){
+        if(!held) return;
         growPlant(index);
-        setTimeout(growLoop, 150);
+        setTimeout(loop,150);
     }
-    growLoop();
+    loop();
 }
-function stopHold() { held = false; }
+function stopHold(){ held=false; }
 
-// =====================================================
-// GROW A PLANT
-// =====================================================
-function growPlant(index) {
-    let m = growPower;
-
-    if (!weatherProtection) {
-        if (weather === "rain") m *= 0.5;
-        if (weather === "storm") m *= 0.2;
-        if (weather === "sun") m *= 1.5;
+// ==================== GROW PLANT ====================
+function growPlant(index){
+    let m=growPower;
+    if(!weatherProtection){
+        if(weather==="rain") m*=0.5;
+        if(weather==="storm") m*=0.2;
+        if(weather==="sun") m*=1.5;
     }
+    m=Math.max(1,Math.floor(m));
+    plots[index].size+=m;
 
-    m = Math.max(1, Math.floor(m));
-    plots[index].size += m;
-
-    // evolve emoji
-    let s = plots[index].size;
-    if (s < 20) plots[index].type = "🌱";
-    else if (s < 50) plots[index].type = "🌿";
-    else if (s < 120) plots[index].type = "🌳";
-    else plots[index].type = "🌲";
+    let s=plots[index].size;
+    if(s<20) plots[index].type="🌱";
+    else if(s<50) plots[index].type="🌿";
+    else if(s<120) plots[index].type="🌳";
+    else plots[index].type="🌲";
 
     update();
     checkAchievements();
 }
 
-// =====================================================
-// WEATHER SYSTEM
-// =====================================================
-function randomWeather() {
-    let r = Math.random();
-    if (r < 0.6) { weather = "sun"; weatherIcon.innerHTML = "☀️ Sunny"; }
-    else if (r < 0.85) { weather = "rain"; weatherIcon.innerHTML = "🌧️ Rainy"; }
-    else { weather = "storm"; weatherIcon.innerHTML = "⛈️ Storm"; }
+// ==================== WEATHER SYSTEM ====================
+function randomWeather(){
+    let r=Math.random();
+    if(r<0.6){ weather="sun"; weatherIcon.innerHTML="☀️ Sunny"; }
+    else if(r<0.85){ weather="rain"; weatherIcon.innerHTML="🌧️ Rainy"; }
+    else{ weather="storm"; weatherIcon.innerHTML="⛈️ Storm"; }
 }
-setInterval(randomWeather, 8000);
+setInterval(randomWeather,8000);
 
-// =====================================================
-// BUGS APPEAR
-// =====================================================
-setInterval(() => {
-    let i = Math.floor(Math.random() * plots.length);
-    if (!plots[i].bug && Math.random() < 0.4) {
-        plots[i].bug = true;
+// ==================== BUG SYSTEM ====================
+setInterval(()=>{
+    let i=Math.floor(Math.random()*plots.length);
+    if(!plots[i].bug && Math.random()<0.4){
+        plots[i].bug=true;
         update();
     }
-}, 3000);
+},3000);
 
-// =====================================================
-// AUTO GROW
-// =====================================================
-setInterval(() => {
-    for (let i = 0; i < autoGrow; i++) {
-        let index = Math.floor(Math.random() * plots.length);
+// ==================== AUTO GROW ====================
+setInterval(()=>{
+    for(let i=0;i<autoGrow;i++){
+        let index=Math.floor(Math.random()*plots.length);
         growPlant(index);
     }
-}, 1000);
+},1000);
 
-// =====================================================
-// SHOP
-// =====================================================
-document.getElementById("upgradeGrow").addEventListener("click", () => {
-    if (money >= 30) {
-        money -= 30;
-        growPower += 1;
-        update();
-    }
+// ==================== SHOP ====================
+document.getElementById("upgradeGrow").addEventListener("click", ()=>{
+    if(money>=30){ money-=30; growPower+=1; update(); }
+});
+document.getElementById("upgradeAuto").addEventListener("click", ()=>{
+    if(money>=50){ money-=50; autoGrow+=1; update(); }
+});
+document.getElementById("weatherProtect").addEventListener("click", ()=>{
+    if(!weatherProtection && money>=80){ money-=80; weatherProtection=true; alert("Weather no longer affects growth!"); update(); }
 });
 
-document.getElementById("upgradeAuto").addEventListener("click", () => {
-    if (money >= 50) {
-        money -= 50;
-        autoGrow += 1;
-        update();
-    }
-});
+// ==================== ACHIEVEMENTS ====================
+const achievements={ grow10:false, grow100:false, kill5:false };
+function checkAchievements(){
+    let total=plots.reduce((a,p)=>a+p.size,0);
+    if(total>=10 && !achievements.grow10){ achievements.grow10=true; unlock("🌱 First Steps — Grow 10 size"); }
+    if(total>=100 && !achievements.grow100){ achievements.grow100=true; unlock("🌿 Growing Strong — Grow 100 size"); }
 
-document.getElementById("weatherProtect").addEventListener("click", () => {
-    if (!weatherProtection && money >= 80) {
-        money -= 80;
-        weatherProtection = true;
-        alert("Weather no longer affects growth!");
-        update();
-    }
-});
+    let bugKills=parseInt(localStorage.getItem("bugKills"))||0;
+    if(bugKills>=5 && !achievements.kill5){ achievements.kill5=true; unlock("🐛 Exterminator — Kill 5 bugs"); }
+}
+function unlock(text){ let div=document.createElement("div"); div.textContent="🏆 "+text; achieveDisplay.appendChild(div); }
 
-// =====================================================
-// ACHIEVEMENTS
-// =====================================================
-const achievements = {
-    grow10:false,
-    grow100:false,
-    kill5:false
-};
-
-function checkAchievements() {
-    let total = plots.reduce((a,p)=>a+p.size,0);
-
-    if (total >= 10 && !achievements.grow10) {
-        achievements.grow10 = true;
-        unlock("🌱 First Steps — Grow 10 size");
-    }
-    if (total >= 100 && !achievements.grow100) {
-        achievements.grow100 = true;
-        unlock("🌿 Growing Strong — Grow 100 size");
-    }
-
-    let bugKills = parseInt(localStorage.getItem("bugKills")) || 0;
-    if (bugKills >= 5 && !achievements.kill5) {
-        achievements.kill5 = true;
-        unlock("🐛 Exterminator — Kill 5 bugs");
-    }
+// ==================== SAVE SYSTEM ====================
+function save(){
+    localStorage.setItem("plots",JSON.stringify(plots));
+    localStorage.setItem("money",money);
+    localStorage.setItem("growPower",growPower);
+    localStorage.setItem("autoGrow",autoGrow);
+    localStorage.setItem("weatherProtection",weatherProtection);
 }
 
-function unlock(text) {
-    let div = document.createElement("div");
-    div.textContent = "🏆 " + text;
-    achieveDisplay.appendChild(div);
-}
-
-// =====================================================
-// SAVE SYSTEM
-// =====================================================
-function save() {
-    localStorage.setItem("plots", JSON.stringify(plots));
-    localStorage.setItem("money", money);
-    localStorage.setItem("growPower", growPower);
-    localStorage.setItem("autoGrow", autoGrow);
-    localStorage.setItem("weatherProtection", weatherProtection);
-}
-
-// =====================================================
-// INIT
-// =====================================================
+// ==================== INIT ====================
 update();
 checkAchievements();
 </script>
-
 </body>
 </html>
