@@ -20,6 +20,7 @@
 <canvas id="sandbox"></canvas>
 
 <script>
+// ==== Canvas Setup ====
 const canvas = document.getElementById('sandbox');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -28,10 +29,11 @@ canvas.height = window.innerHeight;
 let gridSize = 6; // Bigger for performance
 let cols = Math.floor(canvas.width / gridSize);
 let rows = Math.floor(canvas.height / gridSize);
-let grid = [];
-let activeParticles = []; // Only track particles that exist
 
-// Initialize grid
+let grid = [];
+let activeParticles = [];
+
+// Initialize empty grid
 for(let y=0;y<rows;y++){
   grid[y] = [];
   for(let x=0;x<cols;x++){
@@ -61,7 +63,7 @@ const elements = {
   concrete: { color:'#555', type:'static', flammable:false },
 };
 
-// ==== Reaction table ====
+// ==== Reactions ====
 const reactions = {
   fire: { oil: 'explosion', wood: 'fire', gas:'explosion', water:'smoke' },
   water: { lava:'smoke', fire:'smoke', ice:'water' },
@@ -82,7 +84,7 @@ for(let el in elements){
   toolbox.appendChild(btn);
 }
 
-// Brush size selector
+// Brush size
 const brushLabel = document.createElement('span');
 brushLabel.textContent = 'Brush Size: ';
 toolbox.appendChild(brushLabel);
@@ -90,43 +92,46 @@ toolbox.appendChild(brushLabel);
 const brushSelect = document.createElement('select');
 [1,3,5].forEach(s=>{
   const opt = document.createElement('option');
-  opt.value = s; opt.textContent = s==1?'Small':s==3?'Medium':'Large';
+  opt.value = s;
+  opt.textContent = s==1?'Small':s==3?'Medium':'Large';
   brushSelect.appendChild(opt);
 });
-brushSelect.onchange = e=>brushSize = parseInt(e.target.value);
+brushSelect.onchange = e=>brushSize=parseInt(e.target.value);
 toolbox.appendChild(brushSelect);
 
 // Clear button
 const clearBtn = document.createElement('button');
 clearBtn.textContent='Clear';
-clearBtn.onclick=()=>{
-  grid.forEach(row=>row.fill(null));
+clearBtn.onclick = ()=>{
+  for(let y=0;y<rows;y++) grid[y].fill(null);
   activeParticles = [];
 };
 toolbox.appendChild(clearBtn);
 
 // ==== Particle placement ====
-function placeParticle(x,y,type){
+function placeParticle(x, y, type){
   if(x<0||x>=cols||y<0||y>=rows) return;
-  if(grid[y][x]===null){
+  if(!grid[y][x]){
     grid[y][x] = { type:type, reacted:false };
     activeParticles.push({x,y});
   }
 }
 
-// Mouse painting
+// Mouse drawing
 canvas.addEventListener('mousemove', e=>{
   if(e.buttons!==1) return;
   let gx = Math.floor(e.clientX / gridSize);
   let gy = Math.floor(e.clientY / gridSize);
   for(let dx=-brushSize+1; dx<brushSize; dx++){
     for(let dy=-brushSize+1; dy<brushSize; dy++){
-      placeParticle(gx+dx, gy+dy, currentElement);
+      const nx = gx + dx;
+      const ny = gy + dy;
+      placeParticle(nx, ny, currentElement);
     }
   }
 });
 
-// ==== Update physics & reactions ====
+// ==== Physics & Reactions ====
 function update(){
   let newActive = [];
   for(let i=0;i<activeParticles.length;i++){
@@ -144,7 +149,7 @@ function update(){
       else if(el.type==='flow'){
         let dirs=[-1,1].sort(()=>Math.random()-0.5);
         for(let dx of dirs){
-          if(!grid[y+1]?.[x+dx]) { grid[y+1][x+dx]=p; grid[y][x]=null; x+=dx; y++; moved=true; break; }
+          if(!grid[y+1]?.[x+dx]){ grid[y+1][x+dx]=p; grid[y][x]=null; x+=dx; y++; moved=true; break; }
         }
       }
     }
@@ -152,12 +157,10 @@ function update(){
       if(y>0 && !grid[y-1][x]){ grid[y-1][x]=p; grid[y][x]=null; y--; moved=true; }
     }
 
-    // Reaction with neighbors
-    let neighbors = [
-      grid[y+1]?.[x], grid[y-1]?.[x], grid[y]?.[x+1], grid[y]?.[x-1]
-    ];
+    // Neighbor reactions
+    let neighbors = [grid[y+1]?.[x], grid[y-1]?.[x], grid[y]?.[x+1], grid[y]?.[x-1]];
     for(let n of neighbors){
-      if(!n||p.reacted||n.reacted) continue;
+      if(!n || p.reacted || n.reacted) continue;
       const react = reactions[p.type]?.[n.type] || reactions[n.type]?.[p.type];
       if(react){
         if(react==='fire'){ p.type='fire'; n.type='fire'; p.reacted=n.reacted=true; }
@@ -171,7 +174,6 @@ function update(){
       }
     }
 
-    // Keep particle in active list if it can still move
     if(el.type!=='static' || moved) newActive.push({x,y});
   }
   activeParticles = newActive;
@@ -185,7 +187,7 @@ function triggerExplosion(cx,cy,radius){
       let y=cy+dy;
       if(x<0||x>=cols||y<0||y>=rows) continue;
       if(Math.sqrt(dx*dx+dy*dy)<=radius){
-        grid[y][x]={type:'fire', reacted:false};
+        grid[y][x] = {type:'fire', reacted:false};
         activeParticles.push({x,y});
       }
     }
@@ -203,7 +205,7 @@ function draw(){
   }
 }
 
-// ==== Animation loop ====
+// ==== Loop ====
 function loop(){
   ctx.fillStyle='#111';
   ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -213,21 +215,24 @@ function loop(){
 }
 loop();
 
-// ==== Resize handling ====
+// ==== Resize ====
 window.addEventListener('resize', ()=>{
-  canvas.width=window.innerWidth;
-  canvas.height=window.innerHeight;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   cols = Math.floor(canvas.width / gridSize);
   rows = Math.floor(canvas.height / gridSize);
-  let newGrid=[];
+  let newGrid = [];
+  let newActive = [];
   for(let y=0;y<rows;y++){
-    newGrid[y]=[];
+    newGrid[y] = [];
     for(let x=0;x<cols;x++){
-      newGrid[y][x]=grid[y]?.[x]||null;
-      if(newGrid[y][x]) activeParticles.push({x,y});
+      const old = grid[y]?.[x] || null;
+      newGrid[y][x] = old;
+      if(old) newActive.push({x,y});
     }
   }
-  grid=newGrid;
+  grid = newGrid;
+  activeParticles = newActive;
 });
 </script>
 
