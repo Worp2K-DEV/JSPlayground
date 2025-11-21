@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Physics Sandbox</title>
+  <title>Enhanced Physics Sandbox</title>
   <style>
     body { margin: 0; overflow: hidden; background: #222; }
     #toolbox {
       position: absolute; top: 10px; left: 10px; z-index: 10;
       background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;
     }
-    button { margin: 5px; padding: 5px 10px; }
+    button, input { margin: 5px; padding: 5px 10px; }
+    label { color: white; }
   </style>
 </head>
 <body>
@@ -18,16 +19,24 @@
 <div id="toolbox">
   <button onclick="addBox()">Add Box</button>
   <button onclick="addBall()">Add Ball</button>
+  <button onclick="addTriangle()">Add Triangle</button>
+  <button onclick="addPolygon()">Add Polygon</button>
   <button onclick="resetScene()">Reset</button>
+  <button onclick="toggleWireframes()">Toggle Wireframes</button>
+  <br>
+  <label>Gravity:</label>
+  <input type="range" min="-1" max="2" step="0.1" value="1" id="gravitySlider">
+  <br>
+  <label>Bounciness:</label>
+  <input type="range" min="0" max="1" step="0.05" value="0.5" id="restitutionSlider">
 </div>
 
 <canvas id="sandbox"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 <script>
-const { Engine, Render, World, Bodies, Mouse, MouseConstraint } = Matter;
+const { Engine, Render, World, Bodies, Mouse, MouseConstraint, Composite } = Matter;
 
-// Create engine and world
 const engine = Engine.create();
 const world = engine.world;
 
@@ -50,11 +59,13 @@ const render = Render.create({
 Render.run(render);
 Engine.run(engine);
 
-// Add ground
+// Ground and walls
 const ground = Bodies.rectangle(canvas.width/2, canvas.height-20, canvas.width, 40, { isStatic: true, render: { fillStyle: '#555' } });
-World.add(world, ground);
+const leftWall = Bodies.rectangle(-20, canvas.height/2, 40, canvas.height, { isStatic: true });
+const rightWall = Bodies.rectangle(canvas.width+20, canvas.height/2, 40, canvas.height, { isStatic: true });
+World.add(world, [ground, leftWall, rightWall]);
 
-// Add mouse control
+// Mouse control
 const mouse = Mouse.create(canvas);
 const mouseConstraint = MouseConstraint.create(engine, {
   mouse: mouse,
@@ -62,31 +73,70 @@ const mouseConstraint = MouseConstraint.create(engine, {
 });
 World.add(world, mouseConstraint);
 
-// Functions to add objects
+// Helper: random color
+function randomColor() {
+  return '#' + Math.floor(Math.random()*16777215).toString(16);
+}
+
+// Add objects
 function addBox() {
-  const box = Bodies.rectangle(Math.random()*canvas.width, 50, 50, 50, { restitution: 0.5, render: { fillStyle: '#00ffcc' } });
+  const box = Bodies.rectangle(Math.random()*canvas.width, 50, 50, 50, {
+    restitution: parseFloat(document.getElementById('restitutionSlider').value),
+    render: { fillStyle: randomColor() }
+  });
   World.add(world, box);
 }
 
 function addBall() {
-  const ball = Bodies.circle(Math.random()*canvas.width, 50, 25, { restitution: 0.9, render: { fillStyle: '#ff5500' } });
+  const ball = Bodies.circle(Math.random()*canvas.width, 50, 25, {
+    restitution: parseFloat(document.getElementById('restitutionSlider').value),
+    render: { fillStyle: randomColor() }
+  });
   World.add(world, ball);
+}
+
+function addTriangle() {
+  const triangle = Bodies.polygon(Math.random()*canvas.width, 50, 3, 40, {
+    restitution: parseFloat(document.getElementById('restitutionSlider').value),
+    render: { fillStyle: randomColor() }
+  });
+  World.add(world, triangle);
+}
+
+function addPolygon() {
+  const sides = Math.floor(Math.random() * 5) + 5; // 5-9 sides
+  const polygon = Bodies.polygon(Math.random()*canvas.width, 50, sides, 30, {
+    restitution: parseFloat(document.getElementById('restitutionSlider').value),
+    render: { fillStyle: randomColor() }
+  });
+  World.add(world, polygon);
 }
 
 // Reset scene
 function resetScene() {
   World.clear(world, false);
-  World.add(world, ground);
-  World.add(world, mouseConstraint);
+  World.add(world, [ground, leftWall, rightWall, mouseConstraint]);
 }
+
+// Toggle wireframes
+function toggleWireframes() {
+  render.options.wireframes = !render.options.wireframes;
+}
+
+// Gravity control
+document.getElementById('gravitySlider').addEventListener('input', (e) => {
+  engine.world.gravity.y = parseFloat(e.target.value);
+});
 
 // Resize canvas dynamically
 window.addEventListener('resize', () => {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   Render.lookAt(render, { min: { x: 0, y: 0 }, max: { x: canvas.width, y: canvas.height } });
+  Matter.Body.setPosition(ground, { x: canvas.width/2, y: canvas.height-20 });
+  Matter.Body.setPosition(leftWall, { x: -20, y: canvas.height/2 });
+  Matter.Body.setPosition(rightWall, { x: canvas.width+20, y: canvas.height/2 });
 });
 </script>
-
 </body>
 </html>
