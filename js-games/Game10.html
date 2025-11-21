@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Memory Tile Game with Start Menu</title>
+<title>Memory Tile Flip Game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 body {
@@ -22,19 +22,45 @@ h1 { font-size:32px; margin-bottom:10px; }
     display:inline-block;
 }
 .btn:hover { background:#555; }
-#grid { display:grid; justify-content:center; gap:10px; margin-top:20px; }
+#grid {
+    display:grid;
+    justify-content:center;
+    gap:10px;
+    margin-top:20px;
+}
 .tile {
-    width:80px; height:80px;
+    width:80px;
+    height:80px;
+    perspective:600px;
+}
+.tile-inner {
+    width:100%;
+    height:100%;
     background:#444;
     border-radius:10px;
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:40px;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    position: relative;
     cursor:pointer;
-    transition: transform 0.3s;
 }
-.tile.flipped { background:#0f0; color:#222; }
+.tile.flipped .tile-inner { transform: rotateY(180deg); }
+.tile-front, .tile-back {
+    position:absolute;
+    width:100%;
+    height:100%;
+    backface-visibility:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:10px;
+    font-size:40px;
+}
+.tile-front { background:#444; color:#fff; }
+.tile-back { background:#0f0; color:#222; transform: rotateY(180deg); }
 #stats { margin:15px 0; font-size:20px; }
 select { padding:5px; margin:5px; border-radius:5px; }
 </style>
@@ -78,7 +104,7 @@ select { padding:5px; margin:5px; border-radius:5px; }
 let theme = "fruits";
 let difficulty = 4;
 const themeMap = {
-    fruits: ["🍎","🍌","🍇","🍒","🍉","🍍","🥝","🍑","🍋","🥭","🍐","🍏","🍊","🍓","🍈","🍒","🥥","🥑","🍅","🥔","🥕","🌽","🥬","🥦","🧄","🧅","🍄","🥜","🌰","🍞","🧈","🧀","🥚","🥓","🍗","🍖","🌭","🍔","🍟","🍕","🥪","🥙","🥗","🌮","🌯","🥫","🍿","🧂","🥤","🍹","🍸","🍷","🍺","🍻"],
+    fruits: ["🍎","🍌","🍇","🍒","🍉","🍍","🥝","🍑","🍋","🥭","🍐","🍏","🍊","🍓","🍈","🥥","🥑","🍅","🥔","🥕","🌽","🥬","🥦","🧄","🧅","🍄","🥜","🌰","🍞","🧈","🧀","🥚","🥓","🍗","🍖","🌭","🍔","🍟","🍕","🥪","🥙","🥗","🌮","🌯","🥫","🍿","🧂","🥤","🍹","🍸","🍷","🍺","🍻"],
     animals: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🕷","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦀","🦞","🦐","🐠","🐟","🐡","🐬","🐳","🐋","🦈"],
     sports: ["⚽","🏀","🏈","🎾","🎱","🏓","🏸","🏐","🏉","🥏","🏑","🏒","🥅","⛳","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛷","⛸","🎿","🏂","🏋️‍♂️","🏋️‍♀️","🤼‍♂️","🤼‍♀️","🤸‍♂️","🤸‍♀️","⛹️‍♂️","⛹️‍♀️","🤾‍♂️","🤾‍♀️"]
 };
@@ -97,12 +123,10 @@ startBtn.addEventListener("click",()=>{
     gameDiv.style.display="block";
     initGame();
 });
-
 settingsBtn.addEventListener("click",()=>{
     menuDiv.style.display="none";
     settingsDiv.style.display="block";
 });
-
 backBtn.addEventListener("click",()=>{
     settingsDiv.style.display="none";
     menuDiv.style.display="block";
@@ -111,7 +135,6 @@ backBtn.addEventListener("click",()=>{
 // ==================== SETTINGS SELECTORS ====================
 const themeSelect=document.getElementById("themeSelect");
 themeSelect.addEventListener("change",(e)=>{ theme=e.target.value; });
-
 const difficultySelect=document.getElementById("difficultySelect");
 difficultySelect.addEventListener("change",(e)=>{ difficulty=parseInt(e.target.value); });
 
@@ -125,22 +148,34 @@ let matches = 0;
 
 // ==================== INIT GAME ====================
 function initGame(){
-    moves=0;
-    matches=0;
+    moves=0; matches=0;
     document.getElementById("stats").textContent=`Moves: 0 | Matches: 0`;
-    
     const grid=document.getElementById("grid");
     grid.innerHTML="";
     grid.style.gridTemplateColumns=`repeat(${difficulty}, 80px)`;
-    
+
     let totalPairs = (difficulty*difficulty)/2;
     let symbols=themeMap[theme].slice(0,totalPairs);
     tiles = shuffle([...symbols, ...symbols]);
-    
+
     tiles.forEach(symbol=>{
         let tile=document.createElement("div");
         tile.className="tile";
-        tile.dataset.symbol=symbol;
+
+        let inner=document.createElement("div");
+        inner.className="tile-inner";
+
+        let front=document.createElement("div");
+        front.className="tile-front";
+        front.textContent="❓";
+
+        let back=document.createElement("div");
+        back.className="tile-back";
+        back.textContent=symbol;
+
+        inner.appendChild(front);
+        inner.appendChild(back);
+        tile.appendChild(inner);
         tile.addEventListener("click",()=>flipTile(tile));
         grid.appendChild(tile);
     });
@@ -158,16 +193,17 @@ function shuffle(array){
 // ==================== FLIP TILE ====================
 function flipTile(tile){
     if(lock || tile.classList.contains("flipped")) return;
-    tile.textContent=tile.dataset.symbol;
     tile.classList.add("flipped");
-    
+
     if(!firstTile){
         firstTile=tile;
     } else {
         secondTile=tile;
         moves++;
         document.getElementById("stats").textContent=`Moves: ${moves} | Matches: ${matches}`;
-        if(firstTile.dataset.symbol===secondTile.dataset.symbol){
+        let symbol1 = firstTile.querySelector(".tile-back").textContent;
+        let symbol2 = secondTile.querySelector(".tile-back").textContent;
+        if(symbol1===symbol2){
             matches++;
             firstTile=null;
             secondTile=null;
@@ -178,8 +214,6 @@ function flipTile(tile){
         } else {
             lock=true;
             setTimeout(()=>{
-                firstTile.textContent="";
-                secondTile.textContent="";
                 firstTile.classList.remove("flipped");
                 secondTile.classList.remove("flipped");
                 firstTile=null;
