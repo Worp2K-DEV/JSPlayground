@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Memory Tile Game with Start Menu</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+    background:#222;
+    color:white;
+    font-family:Arial, sans-serif;
+    text-align:center;
+    padding:20px;
+}
+h1 { font-size:32px; margin-bottom:10px; }
+#menu, #settings, #game { margin-top:20px; }
+.btn {
+    background:#444;
+    padding:10px;
+    margin:5px;
+    border-radius:8px;
+    cursor:pointer;
+    display:inline-block;
+}
+.btn:hover { background:#555; }
+#grid { display:grid; justify-content:center; gap:10px; margin-top:20px; }
+.tile {
+    width:80px; height:80px;
+    background:#444;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:40px;
+    cursor:pointer;
+    transition: transform 0.3s;
+}
+.tile.flipped { background:#0f0; color:#222; }
+#stats { margin:15px 0; font-size:20px; }
+select { padding:5px; margin:5px; border-radius:5px; }
+</style>
+</head>
+<body>
+
+<h1>🧠 Memory Tile Flip</h1>
+
+<div id="menu">
+    <div class="btn" id="startBtn">Start Game</div>
+    <div class="btn" id="settingsBtn">Settings</div>
+</div>
+
+<div id="settings" style="display:none;">
+    <h2>Settings</h2>
+    <label>Emoji Theme:</label>
+    <select id="themeSelect">
+        <option value="fruits">Fruits 🍎🍌🍇🍉🍒🍍🥝🍑</option>
+        <option value="animals">Animals 🐶🐱🐭🐹🐰🦊🐻🐼</option>
+        <option value="sports">Sports ⚽🏀🏈🎾🎱🏓🏸🏐</option>
+    </select>
+    <br>
+    <label>Difficulty:</label>
+    <select id="difficultySelect">
+        <option value="4">Easy 4x4</option>
+        <option value="6">Medium 6x6</option>
+        <option value="8">Hard 8x8</option>
+    </select>
+    <br>
+    <div class="btn" id="backBtn">Back</div>
+</div>
+
+<div id="game" style="display:none;">
+    <div id="stats">Moves: 0 | Matches: 0</div>
+    <div id="grid"></div>
+    <div class="btn" id="restart">Restart</div>
+</div>
+
+<script>
+// ==================== SETTINGS DATA ====================
+let theme = "fruits";
+let difficulty = 4;
+const themeMap = {
+    fruits: ["🍎","🍌","🍇","🍒","🍉","🍍","🥝","🍑","🍋","🥭","🍐","🍏","🍊","🍓","🍈","🍒","🥥","🥑","🍅","🥔","🥕","🌽","🥬","🥦","🧄","🧅","🍄","🥜","🌰","🍞","🧈","🧀","🥚","🥓","🍗","🍖","🌭","🍔","🍟","🍕","🥪","🥙","🥗","🌮","🌯","🥫","🍿","🧂","🥤","🍹","🍸","🍷","🍺","🍻"],
+    animals: ["🐶","🐱","🐭","🐹","🐰","🦊","🐻","🐼","🐨","🐯","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦","🐤","🦆","🦉","🦇","🐺","🐗","🐴","🦄","🐝","🐛","🦋","🐌","🐞","🐜","🕷","🦂","🐢","🐍","🦎","🦖","🦕","🐙","🦑","🦀","🦞","🦐","🐠","🐟","🐡","🐬","🐳","🐋","🦈"],
+    sports: ["⚽","🏀","🏈","🎾","🎱","🏓","🏸","🏐","🏉","🥏","🏑","🏒","🥅","⛳","🏹","🎣","🤿","🥊","🥋","🎽","🛹","🛷","⛸","🎿","🏂","🏋️‍♂️","🏋️‍♀️","🤼‍♂️","🤼‍♀️","🤸‍♂️","🤸‍♀️","⛹️‍♂️","⛹️‍♀️","🤾‍♂️","🤾‍♀️"]
+};
+
+// ==================== MENU NAV ====================
+const startBtn=document.getElementById("startBtn");
+const settingsBtn=document.getElementById("settingsBtn");
+const backBtn=document.getElementById("backBtn");
+const gameDiv=document.getElementById("game");
+const menuDiv=document.getElementById("menu");
+const settingsDiv=document.getElementById("settings");
+
+startBtn.addEventListener("click",()=>{
+    menuDiv.style.display="none";
+    settingsDiv.style.display="none";
+    gameDiv.style.display="block";
+    initGame();
+});
+
+settingsBtn.addEventListener("click",()=>{
+    menuDiv.style.display="none";
+    settingsDiv.style.display="block";
+});
+
+backBtn.addEventListener("click",()=>{
+    settingsDiv.style.display="none";
+    menuDiv.style.display="block";
+});
+
+// ==================== SETTINGS SELECTORS ====================
+const themeSelect=document.getElementById("themeSelect");
+themeSelect.addEventListener("change",(e)=>{ theme=e.target.value; });
+
+const difficultySelect=document.getElementById("difficultySelect");
+difficultySelect.addEventListener("change",(e)=>{ difficulty=parseInt(e.target.value); });
+
+// ==================== GAME DATA ====================
+let tiles = [];
+let firstTile = null;
+let secondTile = null;
+let lock = false;
+let moves = 0;
+let matches = 0;
+
+// ==================== INIT GAME ====================
+function initGame(){
+    moves=0;
+    matches=0;
+    document.getElementById("stats").textContent=`Moves: 0 | Matches: 0`;
+    
+    const grid=document.getElementById("grid");
+    grid.innerHTML="";
+    grid.style.gridTemplateColumns=`repeat(${difficulty}, 80px)`;
+    
+    let totalPairs = (difficulty*difficulty)/2;
+    let symbols=themeMap[theme].slice(0,totalPairs);
+    tiles = shuffle([...symbols, ...symbols]);
+    
+    tiles.forEach(symbol=>{
+        let tile=document.createElement("div");
+        tile.className="tile";
+        tile.dataset.symbol=symbol;
+        tile.addEventListener("click",()=>flipTile(tile));
+        grid.appendChild(tile);
+    });
+}
+
+// ==================== SHUFFLE ====================
+function shuffle(array){
+    for(let i=array.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [array[i],array[j]]=[array[j],array[i]];
+    }
+    return array;
+}
+
+// ==================== FLIP TILE ====================
+function flipTile(tile){
+    if(lock || tile.classList.contains("flipped")) return;
+    tile.textContent=tile.dataset.symbol;
+    tile.classList.add("flipped");
+    
+    if(!firstTile){
+        firstTile=tile;
+    } else {
+        secondTile=tile;
+        moves++;
+        document.getElementById("stats").textContent=`Moves: ${moves} | Matches: ${matches}`;
+        if(firstTile.dataset.symbol===secondTile.dataset.symbol){
+            matches++;
+            firstTile=null;
+            secondTile=null;
+            document.getElementById("stats").textContent=`Moves: ${moves} | Matches: ${matches}`;
+            if(matches===tiles.length/2){
+                setTimeout(()=>alert(`🎉 You matched all tiles in ${moves} moves!`),200);
+            }
+        } else {
+            lock=true;
+            setTimeout(()=>{
+                firstTile.textContent="";
+                secondTile.textContent="";
+                firstTile.classList.remove("flipped");
+                secondTile.classList.remove("flipped");
+                firstTile=null;
+                secondTile=null;
+                lock=false;
+            },800);
+        }
+    }
+}
+
+// ==================== RESTART ====================
+document.getElementById("restart").addEventListener("click",initGame);
+</script>
+
+</body>
+</html>
